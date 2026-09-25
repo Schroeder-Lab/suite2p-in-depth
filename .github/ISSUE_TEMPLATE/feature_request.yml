@@ -1,0 +1,33 @@
+name: Feature request
+description: Propose a focused workflow, documentation, or scientific enhancement
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: Research need
+      description: Explain the workflow and why existing commands do not cover it.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Include inputs, outputs, compatibility, and safety expectations.
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Scientific validation
+      description: Describe synthetic tests and representative de-identified comparisons needed.
+    validations:
+      required: true
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - label: This proposal contains no raw or identifying laboratory data.
+          required: true

@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: >-
+  If you use this software, please cite the software release. A preferred paper citation will be
+  added after its bibliographic metadata is approved.
+title: suite2p-in-depth
+type: software
+authors:
+  - name: Schroeder Lab
+version: 0.1.0
+license: GPL-3.0-only
+repository-code: https://github.com/Schroeder-Lab/suite2p-in-depth
+url: https://github.com/Schroeder-Lab/suite2p-in-depth
+abstract: >-
+  Reproducible depth-motion correction and trace preprocessing for two-photon calcium imaging,
+  built on an immutable official Suite2p release with local axial-registration extensions.
+keywords:
+  - two-photon imaging
+  - calcium imaging
+  - axial motion correction
+  - Suite2p

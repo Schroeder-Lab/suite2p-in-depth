@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Virtual environments
+.venv/
+env/
+venv/
+
+# PyCharm
+.idea/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+pip-wheel-metadata/
+
+# Tests / coverage
+.coverage
+.coverage.*
+coverage.xml
+junit*.xml
+.pytest_cache/
+htmlcov/
+
+# Linters / type checkers
+.ruff_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Documentation
+docs/_build/
+doc/_build/
+site/
+
+# Local initialized configurations and generated paper panels
+analysis-config/
+figures/
+
+# Local private laboratory configuration/data
+/plain_suite2p.yaml
+/zregistration.yaml
+/zstack.yaml
+/trace_correction.yaml
+/preprocess_boutons.csv
+/preprocess_neurons.csv
+/planes_to_flyback.csv
+/zoom_to_microns.csv
+/Data/
+/scratch_files/
+
+# OS files
+.DS_Store
+Thumbs.db
+/AGENTS.md

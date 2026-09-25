@@ -1,0 +1,60 @@
+# Algorithm 2: z-register densely sampled imaging planes for small structures.
+# This workflow runs its own Suite2p stages; do not run plain_suite2p.yaml first.
+datasets: "datasets_zregistration.csv"
+planes_to_flyback: "planes_to_flyback.csv"
+
+directories:
+  tiffs: "/path/to/raw/{Name}/{Date}/{Experiments}"
+  output: "/path/to/processed/{Name}/{Date}"
+
+suite2p_settings:
+  torch_device: "cuda" # "cuda" or "cpu"
+  diameter: 3 # expected diameter of ROIs in pixels
+  run:
+    do_registration: True
+    do_regmetrics: True
+    do_detection: True
+    do_deconvolution: False
+    multi_registration: False # set to True to run each plane as server job
+  io:
+    save_ops_orig: True # whether to save original ops file from suite2p;
+  registration:
+    align_by_chan2: False # use channel 2 for registration
+    do_bidiphase: True
+    batch_size: 500 # choose fewer if using GPU and running out of memory
+    nonrigid: True
+    block_size: [32, 128]  # only used if nonrigid==True
+    smooth_sigma: 1.15 # default==1.15, to smooth reference image before registration
+    delete_singleplanes: False # if True, deletes .bin files of individual registered planes
+  detection:
+    algorithm: "sourcery" # "sourcery" or "sparsery";
+                          # key differences: sparse mode assumes that a cell’s spatial footprint can be identified by
+                          # looking at just the frames when it is active; sourcery uses a low-dimensional
+                          # reprensentation of the full movie to detect ROIs.
+    denoise: False # set to True to use PCA denoiseing for cell detection
+    threshold_scaling: 1.5 # default==1.0, defines threshold of trace amplitudes for ROI detection
+    max_overlap: 0.5 # default==0.75
+    soma_crop: True # crops dendrites from ROI
+    cellpose_chan2: False
+    sparsery_settings:
+      highpass_neuropil: 25 # default==25
+      spatial_scale: 0 # default==0 (multi-scale), could set to 1 (6 pixels)
+    sourcery_settings:
+      connected: True # to keep ROIs fully connected
+      max_iterations: 100 # default==20
+  extraction:
+    inner_neuropil_radius: 2 # default==2, number of pixels between ROI and inner radius of neuropil
+    min_neuropil_pixels: 350 # default==350
+    allow_overlap: True # default==False; pixels that are overlapping are thrown out (False) or used for both ROIs (True)
+
+suite2p_db:
+  keep_movie_raw: False # if True, keeps unregistered .bin files
+  functional_chan: 1
+
+daq:
+  sampling_rate: 1000
+  channel_names: "nidaqChannels*.csv"
+  data: "NidaqInput*"
+  piezo_channel_name: "piezo"
+  clock_channel_name: "frameclock"
+  piezo_volt_per_micron: 0.0125

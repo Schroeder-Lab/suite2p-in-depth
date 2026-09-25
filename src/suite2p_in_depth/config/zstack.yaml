@@ -1,0 +1,61 @@
+# Algorithm 1, stage 2: correct Suite2p-extracted traces using a dense reference z-stack.
+# Run plain_suite2p.yaml first and keep use_zstack true.
+datasets: "datasets_zstack.csv"
+zoom_to_size: "zoom_to_microns.csv"
+pixels_to_microns: True
+use_zstack: True
+
+directories:
+  tiffs: "/path/to/raw/{Name}/{Date}"
+  suite2p: "/path/to/processed/{Name}/{Date}"
+  zstack: "/path/to/raw/{Name}/{Date}/{Zstack}"
+  piezo: "/path/to/raw/{Name}/{Date}"
+  output: "/path/to/processed/{Name}/{Date}"
+
+delta_F:
+  absolute_zero: -20200  # reviewed PMT dark offset; estimate-dark-level provides a QC estimate
+  F0_percentile: 8
+  F0_window: 60 # in seconds
+  save_F_neuropilcorrected: True
+  plot: True
+  max_roi_plots: 20  # non-negative integer or all
+  plot_zoomed_traces: True
+
+daq:
+  sampling_rate: 1000 # in Hz
+  channel_names: "nidaqChannels*.csv"
+  data: "NidaqInput*"
+  piezo_channel_name: "piezo"
+  clock_channel_name: "frameclock"
+  piezo_volt_per_micron: 0.0125  # 5 V per 400 microns -> 0.0125 V per micron
+  plot_piezo: True
+
+z_correction:
+  ref_frames: 0.5 # fraction of frames to initialize z-stack reference image
+  spacing: 1  # distance between slices of zstack in microns
+  sigma_stack: [10, 5, 5]  # sigma for Gaussian smoothing of the zstack
+  sigma_trace: 2  # sigma for Gaussian smoothing of the z-correlation values (smoothing across slices)
+  reference: first
+  remove_outliers: True
+  stack_step: 5  # number of zstack slices to correlate in each iteration
+  save_traces_zcorrected: True
+  plot: True
+
+suite2p_stack_within:
+  nonrigid: False
+  maxregshift: 0.2
+
+suite2p_stack_across:
+  maxregshift: 0.2
+  nonrigid: True
+  block_size: [64, 128]  # block size in pixels (y, x) for nonrigid registration of zstack slices to each other
+  maxregshiftNR: 5 # maximum shift in pixels for nonrigid registration of zstack slices to each other
+
+suite2p_stack_to_ref:
+  maxregshift: 0.2
+  nonrigid: True
+  block_size: [64, 128]  # block size in pixels (y, x) for nonrigid registration of zstack slice to reference image
+  maxregshiftNR: 5 # maximum shift in pixels for nonrigid registration of zstack slice to reference image
+
+suite2p_stack_to_frames: # always nonrigid
+  maxregshift: 0.2

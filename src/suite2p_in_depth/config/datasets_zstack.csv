@@ -1,0 +1,2 @@
+Name,Date,Experiments,Planes,Channels,Frame_rate,Zstack_folder,Ignore_planes,Depth,Process
+example-subject,2026-01-01,"[1]",4,1,30.0,zstack,"[]",0,False

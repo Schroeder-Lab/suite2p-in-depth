@@ -1,0 +1,29 @@
+# Algorithm 2 post-processing only: neuropil correction, F0, and dF/F after z-registration.
+# With use_zstack false, this command does not perform axial-motion correction.
+datasets: "datasets_zregistration.csv"
+zoom_to_size: "zoom_to_microns.csv"
+pixels_to_microns: True
+use_zstack: False
+
+directories:
+  tiffs: "/path/to/raw/{Name}/{Date}"  # sub-folders at this path contain tiff files
+  suite2p: "/path/to/processed/{Name}/{Date}"
+  output: "/path/to/processed/{Name}/{Date}"
+
+delta_F:
+  absolute_zero: -20200  # reviewed PMT dark offset; estimate-dark-level provides a QC estimate
+  F0_percentile: 8
+  F0_window: 60 # in seconds
+  save_F_neuropilcorrected: True
+  plot: True
+  max_roi_plots: 20  # non-negative integer or all
+  plot_zoomed_traces: True
+
+daq:  # Only needed when using piezo data, either for z-stack registration or for determining depth of each ROI
+  sampling_rate: 1000 # in Hz
+  channel_names: "nidaqChannels*.csv"
+  data: "NidaqInput*"
+  piezo_channel_name: "piezo"
+  clock_channel_name: "frameclock"
+  piezo_volt_per_micron: 0.0125  # 5 V per 400 microns
+  plot_piezo: True

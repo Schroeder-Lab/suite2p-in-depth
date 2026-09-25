@@ -1,0 +1,10 @@
+matplotlib>=3.8,<3.12
+natsort>=8.4
+numpy>=1.26
+pandas>=2.2
+PyYAML>=6.0
+scikit-image>=0.22
+scipy>=1.12
+suite2p[gui,nwb] @ git+https://github.com/MouseLand/suite2p.git@90be8953c03c6f4275dcd392ac1c6f554116169e
+tifffile>=2024.2.12
+torch>=2.2

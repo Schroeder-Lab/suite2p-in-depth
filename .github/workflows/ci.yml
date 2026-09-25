@@ -1,0 +1,197 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CUDA_VISIBLE_DEVICES: ""
+  MPLBACKEND: Agg
+  PIP_NO_CACHE_DIR: "1"
+  PYTHONUTF8: "1"
+
+jobs:
+  quality:
+    name: Quality, build, and audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Python 3.12
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install CPU-only PyTorch and torchvision
+        run: >-
+          python -m pip install torch torchvision
+          --index-url https://download.pytorch.org/whl/cpu
+      - name: Install development dependencies
+        run: python -m pip install ".[dev]"
+      - name: Ruff lint
+        run: python -m ruff check run_suite2p_in_depth.py src paper tests
+      - name: Ruff format
+        run: python -m ruff format --check run_suite2p_in_depth.py src paper tests
+      - name: Mypy
+        run: python -m mypy
+      - name: Validate documentation links and examples
+        run: python -m pytest tests/test_documentation.py --no-cov
+      - name: Build distributions
+        run: python -m build
+      - name: Validate distribution metadata
+        run: python -m twine check dist/*
+      - name: Audit installed dependencies
+        run: python -m pip_audit --skip-editable
+      - name: Upload distributions
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: distributions
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  tests:
+    name: Tests (${{ matrix.os }}, Python 3.12)
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Python 3.12
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install CPU-only PyTorch and torchvision
+        run: >-
+          python -m pip install torch torchvision
+          --index-url https://download.pytorch.org/whl/cpu
+      - name: Install project and test dependencies
+        run: python -m pip install ".[dev]"
+      - name: Run branch-aware test suite
+        run: >-
+          python -m pytest
+          --junitxml=junit.xml
+          --cov-report=term-missing
+          --cov-report=xml:coverage.xml
+          --cov-fail-under=75
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: test-reports-${{ matrix.os }}
+          path: |
+            junit.xml
+            coverage.xml
+          if-no-files-found: warn
+          retention-days: 14
+
+  integration:
+    name: Synthetic and real integration with pinned official Suite2p
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Python 3.12
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install CPU-only PyTorch and torchvision
+        run: >-
+          python -m pip install torch torchvision
+          --index-url https://download.pytorch.org/whl/cpu
+      - name: Install project with pinned official Suite2p
+        run: python -m pip install ".[dev]"
+      - name: Verify immutable Suite2p source revision
+        shell: python
+        run: |
+          import importlib.metadata
+          import json
+
+          direct_url = importlib.metadata.distribution("suite2p").read_text("direct_url.json")
+          assert direct_url is not None
+          metadata = json.loads(direct_url)
+          assert metadata["url"] == "https://github.com/MouseLand/suite2p.git"
+          assert metadata["vcs_info"]["commit_id"] == "90be8953c03c6f4275dcd392ac1c6f554116169e"
+      - name: Run synthetic workflow integrations
+        run: >-
+          python -m pytest
+          tests/test_integration_workflows.py
+          tests/test_real_suite2p.py
+          tests/test_suite2p_extensions.py
+          tests/test_zregister_integration.py
+          tests/test_utilities_and_plotting.py
+          --no-cov
+          --junitxml=junit-integration.xml
+      - name: Upload integration report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: integration-report
+          path: junit-integration.xml
+          if-no-files-found: warn
+          retention-days: 14
+
+  source-checkout:
+    name: Source checkout CLI smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Python 3.12
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install CPU-only PyTorch and torchvision
+        run: >-
+          python -m pip install torch torchvision
+          --index-url https://download.pytorch.org/whl/cpu
+      - name: Install runtime dependencies only
+        run: python -m pip install -r requirements.txt
+      - name: Run CLI from the checkout
+        run: |
+          python run_suite2p_in_depth.py --version
+          python run_suite2p_in_depth.py --help
+          python run_suite2p_in_depth.py init analysis-config
+          python run_suite2p_in_depth.py validate --workflow run-suite2p --config analysis-config/plain_suite2p.yaml
+
+  clean-wheel:
+    name: Clean wheel installation and CLI smoke test
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Set up Python 3.12
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Download built distributions
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: distributions
+          path: dist
+      - name: Install CPU-only PyTorch and torchvision
+        run: >-
+          python -m pip install torch torchvision
+          --index-url https://download.pytorch.org/whl/cpu
+      - name: Install wheel
+        run: python -m pip install dist/suite2p_in_depth-*.whl
+      - name: Import and run CLI outside checkout
+        working-directory: /tmp
+        run: |
+          python -c "import suite2p_in_depth; print(suite2p_in_depth.__version__)"
+          suite2p-in-depth --version
+          suite2p-in-depth --help
