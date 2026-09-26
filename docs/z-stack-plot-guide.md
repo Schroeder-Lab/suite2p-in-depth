@@ -17,12 +17,27 @@ Plot creation depends on `daq.plot_piezo`, `z_correction.plot`, and `delta_F.plo
 <img alt="Piezo depth trajectory for four acquired planes over the duration of one frame" src="images/z-stack-correction/piezo_per_plane_Ely_2024-07-01.png" width="400"/>
 
 **`piezo_per_plane.png`** shows the mean within-frame piezo trajectory for each acquired plane. The
-horizontal axis is time within one frame, not time across the recording. The vertical axis is
-relative piezo depth in micrometres and is inverted. Here, plane 0 traverses a much wider range
-than planes 1-3. Check the curve shapes, plane order, and relative spacing against the acquisition
-and the flyback-plane rule; the plot alone does not decide which plane is flyback. A wrong plane
+horizontal axis is time within one frame, and the inverted vertical axis shows relative depth in
+micrometres, with the top-most position set to zero. In this recording, planes 1-3 move
+deeper during their frames, while plane 0 moves in the opposite direction, consistent with flyback.
+We usually exclude the flyback plane because it can contain ROIs also seen in the other planes,
+although z-stack correction can process it. To exclude a plane, enter its zero-based index in the
+[`Ignore_planes` column](dataset-csv.md#algorithm-1-datasets_zstackcsv) of `datasets_zstack.csv`.
+
+Compare the curve shapes, plane order, and spacing with your imaging settings. An incorrect plane
 count, DAQ synchronization, or voltage-to-distance calibration can affect stack reslicing and ROI
-depths. See [plot-piezo](helper-utilities.md#plot-piezo) for the standalone helper.
+depths. If the plot differs from your expectations, check:
+
+- that the piezo moved as expected;
+- that the DAQ recorded the measured piezo position rather than the command signal (which may look
+  sawtooth-shaped);
+- that `daq.piezo_channel_name` selects the piezo signal in
+  [`get_piezo_data`](../src/suite2p_in_depth/extract_data.py#L166), and `daq.clock_channel_name`
+  selects the frame clock in [`get_frame_times`](../src/suite2p_in_depth/extract_data.py#L210);
+- that [`daq.piezo_volt_per_micron`](../analysis-config/zstack.yaml#L30) matches your piezo calibration.
+
+To inspect piezo motion before running the full pipeline, use the
+[`suite2p-in-depth plot-piezo` CLI subcommand](helper-utilities.md#plot-piezo).
 
 ## 2. Check movie-to-stack alignment
 
