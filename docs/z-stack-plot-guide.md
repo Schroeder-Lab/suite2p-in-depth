@@ -34,7 +34,7 @@ depths. If the plot differs from your expectations, check:
 - that `daq.piezo_channel_name` selects the piezo signal in
   [`get_piezo_data`](../src/suite2p_in_depth/extract_data.py#L166), and `daq.clock_channel_name`
   selects the frame clock in [`get_frame_times`](../src/suite2p_in_depth/extract_data.py#L210);
-- that [`daq.piezo_volt_per_micron`](../analysis-config/zstack.yaml#L30) matches your piezo calibration.
+- that [`daq.piezo_volt_per_micron`](../src/suite2p_in_depth/config/zstack.yaml#L30) matches your piezo calibration.
 
 To inspect piezo motion before running the full pipeline, use the
 [`suite2p-in-depth plot-piezo` CLI subcommand](helper-utilities.md#plot-piezo).
