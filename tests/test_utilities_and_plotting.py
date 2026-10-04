@@ -299,9 +299,18 @@ def test_zstack_diagnostic_plotting_helpers_write_headless_outputs(tmp_path: Pat
         profile_axis=axes[0],
         stack_axis=axes[1],
         ztrace_axis=axes[2],
+        spacing=2.5,
     )
     assert all(axis.has_data() for axis in axes)
     assert axes[0].get_legend() is not None
+    np.testing.assert_array_equal(axes[0].lines[0].get_ydata(), [2.5])
+    np.testing.assert_array_equal(axes[0].lines[1].get_ydata(), [0.0, 2.5, 5.0])
+    np.testing.assert_array_equal(axes[0].lines[2].get_ydata(), [0.0, 2.5, 5.0])
+    for marker in axes[0].lines[3:]:
+        np.testing.assert_array_equal(marker.get_ydata(), [2.5, 2.5])
+    np.testing.assert_allclose(axes[2].lines[0].get_ydata(), ztrace * 2.5, equal_nan=True)
+    np.testing.assert_array_equal(axes[2].lines[1].get_ydata(), [2.5, 2.5])
+    np.testing.assert_allclose(axes[1].images[0].get_extent(), [-0.5, 20.5, 6.25, -1.25])
     plt.close(figure)
 
     results = [
@@ -346,8 +355,8 @@ def test_zoomed_zstack_roi_plot_has_no_unused_or_overlapping_axis(
         20,
     )
 
-    correct_traces.plot_signal_per_roi(*arguments)
-    correct_traces.plot_signal_per_roi(*arguments, zoom_in=True)
+    correct_traces.plot_signal_per_roi(*arguments, spacing=2.5)
+    correct_traces.plot_signal_per_roi(*arguments, zoom_in=True, spacing=2.5)
 
     normal = saved_figures["ROI0000.png"]
     zoomed = saved_figures["ROI0000_zoomed.png"]
@@ -359,6 +368,9 @@ def test_zoomed_zstack_roi_plot_has_no_unused_or_overlapping_axis(
     assert len(zoomed.axes) == 5
     assert normal._suptitle.get_text() == "ROI 0"
     assert zoomed._suptitle.get_text() == "ROI 0 (zoom-in)"
+    for figure in (normal, zoomed):
+        trace_axis = next(axis for axis in figure.axes if axis.get_title() == "Z-trace")
+        np.testing.assert_allclose(trace_axis.lines[0].get_ydata(), ztrace * 2.5, equal_nan=True)
     for figure in (normal, zoomed):
         figure.canvas.draw()
         legends = [axis.get_legend() for axis in figure.axes if axis.get_legend() is not None]

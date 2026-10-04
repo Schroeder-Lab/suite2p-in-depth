@@ -297,6 +297,7 @@ def plot_signal_per_roi(
     prctile: float,
     roi_indices: Iterable[int] | None = None,
     zoom_in: bool = False,
+    spacing: float = 1.0,
 ) -> None:
     """Save raw, corrected, baseline, and dF/F plots for selected ROIs.
 
@@ -321,8 +322,8 @@ def plot_signal_per_roi(
         Axial ROI profiles and their peak slice indices.
     plane_stack : numpy.ndarray or None
         Registered stack in ``(z, y, x)`` order.
-    reference_depth, ind_best_slice : float or None
-        Depth markers shown when a stack is available.
+    reference_depth, ind_best_slice : int or None
+        Slice-index markers converted to micrometres when a stack is available.
     plane_rate : float
         Frames per second for this plane.
     n_frames : array_like
@@ -333,6 +334,8 @@ def plot_signal_per_roi(
         ROI indices to plot; ``None`` plots all accepted ROIs.
     zoom_in : bool, optional
         Use the compact zoomed plot layout and filename suffix.
+    spacing : float, optional
+        Distance between stack slices in micrometres, used for depth axes.
     """
     colors_paired = plt.get_cmap("Paired")
 
@@ -374,6 +377,7 @@ def plot_signal_per_roi(
                 stack_axis=stack_axis,
                 ztrace_axis=ztrace_axis,
                 zoom_in=zoom_in,
+                spacing=spacing,
             )
             trace_axes = [fig.add_subplot(gs[row, trace_column]) for row in range(1, 4)]
             bouton_layout = False
@@ -1061,6 +1065,7 @@ def process_plane(
                 np.cumsum(db["frames_per_folder"]),
                 config["delta_F"]["F0_percentile"],
                 roi_indices=roi_plot_indices,
+                spacing=spacing if plane_stack is not None else 1.0,
             )
 
             if config["delta_F"]["plot_zoomed_traces"] and fluorescence.shape[0] > zoom_window[1]:
@@ -1087,6 +1092,7 @@ def process_plane(
                     config["delta_F"]["F0_percentile"],
                     roi_indices=roi_plot_indices,
                     zoom_in=True,
+                    spacing=spacing if plane_stack is not None else 1.0,
                 )
 
     return results
@@ -1211,6 +1217,7 @@ def process_dataset(
                 ind_valid_planes,
                 plane_ids=planes[ind_valid_planes],
                 plane_rate=frame_rate / db["nplanes"],
+                spacing=config["z_correction"]["spacing"],
             )
 
         np.save(

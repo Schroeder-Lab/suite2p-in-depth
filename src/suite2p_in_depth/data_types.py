@@ -23,7 +23,7 @@ class TracePaths(TypedDict):
 
 
 class PlaneTraceResults(TypedDict):
-    """Per-plane traces and ROI metadata returned by trace correction."""
+    """Per-plane traces and ROI metadata; internal ``zTrace`` values are slice indices."""
 
     zCorr_stack: np.ndarray | None
     zTrace: np.ndarray | None

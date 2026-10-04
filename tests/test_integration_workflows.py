@@ -180,7 +180,7 @@ def test_trace_plane_integration_with_mocked_zstack_boundary(monkeypatch, tmp_pa
             registration,
             registration,
             None,
-            1,
+            2.5,
         ),
     )
     stack = np.stack([outputs["refImg"] + index for index in range(3)])
@@ -195,7 +195,14 @@ def test_trace_plane_integration_with_mocked_zstack_boundary(monkeypatch, tmp_pa
         "extract_zprofiles",
         lambda *args, **kwargs: np.array([[0.8], [1.0], [1.2]]),
     )
-    config = _trace_config()
+    plot_calls = []
+    monkeypatch.setattr(correct_traces, "zoom_window", (0, 10))
+    monkeypatch.setattr(
+        correct_traces,
+        "plot_signal_per_roi",
+        lambda *args, **kwargs: plot_calls.append((args[9], kwargs)),
+    )
+    config = _trace_config(plot=True)
     config.update(
         {
             "z_correction": {
@@ -204,6 +211,7 @@ def test_trace_plane_integration_with_mocked_zstack_boundary(monkeypatch, tmp_pa
                 "sigma_trace": 0.5,
                 "reference": "first",
                 "remove_outliers": False,
+                "spacing": 2.5,
             },
             "suite2p_stack_within": {},
             "suite2p_stack_across": {},
@@ -226,6 +234,11 @@ def test_trace_plane_integration_with_mocked_zstack_boundary(monkeypatch, tmp_pa
     assert result is not None
     assert result["zCorr_stack"].shape == (3, 120)
     assert result["zProfiles"].shape == (3, 1)
+    np.testing.assert_array_equal(result["zTrace"], np.ones(120))
+    assert [kwargs["spacing"] for _trace, kwargs in plot_calls] == [2.5, 2.5]
+    assert [kwargs.get("zoom_in", False) for _trace, kwargs in plot_calls] == [False, True]
+    for trace, _kwargs in plot_calls:
+        np.testing.assert_array_equal(trace, np.ones(trace.size))
     assert (plane / "zcorrect_outputs.npy").is_file()
 
 

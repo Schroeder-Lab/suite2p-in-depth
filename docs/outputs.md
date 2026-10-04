@@ -15,6 +15,8 @@ Z-stack runs write `2pPlanes.zCorrelations.npy` as `(planes, z, time)`,
 `2pRois.zProfiles.npy` contains the ROI axial profiles used to normalize the extracted traces.
 Z-trace entries are floating-point stack indices; `NaN` marks frames whose best match is at the
 top or bottom of the evaluated stack range, where the true axial position is unresolved.
+Plots convert these indices to micrometres using `z_correction.spacing`; saved z traces retain
+their slice-index values.
 The workflow also writes the shared corrected-trace outputs below after z-motion correction.
 
 ## Shared corrected-trace outputs

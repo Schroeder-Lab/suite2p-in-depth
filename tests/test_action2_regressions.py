@@ -192,8 +192,9 @@ def _plane_result(plane_id: int, length: int) -> dict:
     }
 
 
+@pytest.mark.parametrize("spacing", [1.0, 2.5])
 def test_process_dataset_numeric_plane_order_and_time_axis_trimming(
-    monkeypatch, tmp_path: Path
+    monkeypatch, tmp_path: Path, spacing: float
 ) -> None:
     suite2p_directory = tmp_path / "suite2p"
     suite2p_directory.mkdir()
@@ -205,12 +206,24 @@ def test_process_dataset_numeric_plane_order_and_time_axis_trimming(
     def fake_process_plane(config, plane_directory, *args):
         plane = _plane_id(plane_directory)
         observed_order.append(plane)
-        return _plane_result(plane, lengths[plane])
+        result = _plane_result(plane, lengths[plane])
+        result["zTrace"] = result["zTrace"].astype(float)
+        result["zTrace"][2] = np.nan
+        return result
 
     monkeypatch.setattr(correct_traces, "process_plane", fake_process_plane)
+    monkeypatch.setattr(
+        correct_traces.suite2p_compat, "load_parameters", lambda path: ({"nplanes": 12}, {})
+    )
+    plotted_figures = []
+    monkeypatch.setattr(
+        correct_traces.plt.Figure,
+        "savefig",
+        lambda figure, *args, **kwargs: plotted_figures.append(figure),
+    )
     config = {
         "use_zstack": True,
-        "z_correction": {"plot": False, "save_traces_zcorrected": False},
+        "z_correction": {"plot": True, "save_traces_zcorrected": False, "spacing": spacing},
         "delta_F": {"save_F_neuropilcorrected": False},
     }
 
@@ -230,6 +243,15 @@ def test_process_dataset_numeric_plane_order_and_time_axis_trimming(
     np.testing.assert_array_equal(
         np.load(tmp_path / "2pRois.2pPlanes.npy"), np.array([2.0, 9.0, 10.0])
     )
+    expected_indices = np.array([0.0, 1.0, np.nan])
+    np.testing.assert_allclose(
+        np.load(tmp_path / "2pPlanes.zTraces.npy"),
+        np.tile(expected_indices, (3, 1)),
+        equal_nan=True,
+    )
+    assert not (tmp_path / "2pPlanes.zTraces.units.npy").exists()
+    for line in plotted_figures[0].axes[0].lines:
+        np.testing.assert_allclose(line.get_ydata(), expected_indices * spacing, equal_nan=True)
 
 
 def test_process_dataset_non_zstack_uses_combined_plane(monkeypatch, tmp_path: Path) -> None:

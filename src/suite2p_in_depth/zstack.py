@@ -503,6 +503,7 @@ def plot_zprofile(
     stack_axis: Axes | None,
     ztrace_axis: Axes,
     zoom_in: bool = False,
+    spacing: float = 1.0,
 ) -> None:
     """Draw one ROI's axial fluorescence profile and z trace on given axes.
 
@@ -521,8 +522,8 @@ def plot_zprofile(
         ROI metadata with center pixel in ``med``.
     plane_stack : numpy.ndarray
         Registered stack in ``(z, y, x)`` order.
-    reference_depth, ind_best_slice : float
-        Reference depth and best-matching slice used as plot markers.
+    reference_depth, ind_best_slice : int
+        Reference and best-matching slice indices used as plot markers.
     plane_rate : float
         Frames per second for this imaging plane.
     n_frames : array_like
@@ -535,6 +536,9 @@ def plot_zprofile(
         Existing axes; ``stack_axis`` may be omitted.
     zoom_in : bool, optional
         Restrict the profile to depths sampled by the z trace.
+    spacing : float, optional
+        Distance between stack slices in micrometres. Plotted depths are
+        relative to slice zero, at the middle image row after reslicing.
     """
     # Compare the stack profile with low fluorescence values recorded at each depth.
     if fluorescence_profiles is not None:
@@ -552,7 +556,7 @@ def plot_zprofile(
             valid = np.arange(depth_fluorescence_percentiles.shape[0])
             plt.plot(
                 fluorescence_profiles[peaks],
-                peaks,
+                np.asarray(peaks) * spacing,
                 "o",
                 color=colors_paired(1),
                 markersize=3,
@@ -560,21 +564,25 @@ def plot_zprofile(
 
         plt.plot(
             depth_fluorescence_percentiles[valid],
-            valid,
+            valid * spacing,
             color=colors_paired(0),
             linewidth=3,
             label="F(recording)",
         )
         plt.plot(
             fluorescence_profiles[valid],
-            valid,
+            valid * spacing,
             color=colors_paired(1),
             linewidth=1,
             label="F(stack)",
         )
-        plt.axhline(reference_depth, color="k", linewidth=1, label="Ref. depth")
+        plt.axhline(reference_depth * spacing, color="k", linewidth=1, label="Ref. depth")
         plt.axhline(
-            ind_best_slice, color="red", linestyle="--", linewidth=1, label="Ref. im. match"
+            ind_best_slice * spacing,
+            color="red",
+            linestyle="--",
+            linewidth=1,
+            label="Ref. im. match",
         )
 
         handles, labels = profile_axis.get_legend_handles_labels()
@@ -592,7 +600,7 @@ def plot_zprofile(
             handletextpad=0.4,
             columnspacing=0.7,
         )
-        plt.ylim(0, fluorescence_profiles.shape[0])
+        plt.ylim(0, fluorescence_profiles.shape[0] * spacing)
         plt.gca().invert_yaxis()
         plt.xlabel("Fluorescence")
         plt.ylabel("Depth (µm)")
@@ -601,20 +609,27 @@ def plot_zprofile(
     if stack_axis is not None:
         plt.sca(stack_axis)
         x_ind = np.clip(roi["med"][1] + np.arange(-10, 11), 0, plane_stack.shape[2] - 1)
-        plt.imshow(plane_stack[:, roi["med"][0], x_ind], cmap="gray", aspect="auto")
+        plt.imshow(
+            plane_stack[:, roi["med"][0], x_ind],
+            cmap="gray",
+            aspect="auto",
+            extent=(-0.5, 20.5, (plane_stack.shape[0] - 0.5) * spacing, -0.5 * spacing),
+        )
         plt.axvline(10, color="red", linewidth=1)  # Center index is always at position 10
         plt.yticks([])
         plt.xlabel("Pixels")
 
     # z trace of plane
     plt.sca(ztrace_axis)
-    plt.plot(np.arange(len(ztrace)) / plane_rate, ztrace, color=(0.5, 0.5, 0.5))
+    plt.plot(np.arange(len(ztrace)) / plane_rate, ztrace * spacing, color=(0.5, 0.5, 0.5))
     plt.gca().invert_yaxis()
-    plt.axhline(reference_depth, color="k", linewidth=3)
+    plt.axhline(reference_depth * spacing, color="k", linewidth=3)
     [plt.axvline(x / plane_rate, color="k", linewidth=1) for x in n_frames]
     plt.xlim(0, ztrace.shape[0] / plane_rate)
     plt.gca().set_xticklabels([])
     plt.tick_params(axis="y", right=True, labelleft=False, labelright=True)
+    ztrace_axis.set_ylabel("Depth (µm)")
+    ztrace_axis.yaxis.set_label_position("right")
     plt.title("Z-trace")
 
 
@@ -624,6 +639,7 @@ def plot_ztraces(
     ind_valid_planes: Sequence[int],
     plane_ids: Sequence[int] | np.ndarray,
     plane_rate: float,
+    spacing: float = 1.0,
 ) -> None:
     """Save the z traces of valid imaging planes on a shared time axis.
 
@@ -632,13 +648,16 @@ def plot_ztraces(
     plot_path : str
         Directory receiving ``zTraces_allPlanes.png``.
     results : sequence[dict]
-        Per-plane results with ``zTrace`` arrays.
+        Per-plane results with ``zTrace`` arrays in stack-slice indices.
     ind_valid_planes : sequence[int]
         Indices into ``results`` to plot.
     plane_ids : sequence[int]
         Physical plane IDs corresponding to those indices.
     plane_rate : float
         Frames per second for the plotted planes.
+    spacing : float, optional
+        Distance between stack slices in micrometres, with slice zero as the
+        depth origin (the middle image row after reslicing).
 
     Raises
     ------
@@ -661,7 +680,7 @@ def plot_ztraces(
             first_trace_length = len(ztrace)
         axis.plot(
             np.arange(len(ztrace)) / plane_rate,
-            ztrace,
+            np.asarray(ztrace) * spacing,
             color=plane_color(plane_id),
             label=f"Plane {int(plane_id)}",
         )
